@@ -1,7 +1,8 @@
+#![allow(unused)]
 #![feature(array_windows)]
 
 use core::fmt;
-use metaheuristics::Problem;
+use metaheuristics::{initial_temperature, Problem};
 use rand::{seq::SliceRandom, Rng};
 use std::{collections::HashSet, env::args, fmt::Debug};
 
@@ -235,23 +236,37 @@ fn display_solution(problem: &LandingProblem, solution: &Solution) {
   }
 }
 
-// Arguments
-// 1. Input file path
-// 2. Max iterations
 fn main() {
   let args: Vec<String> = args().collect();
 
-  let (file_path, max_iterations) = if let [_, file_path, max_iterations] = &args[..] {
-    (file_path, max_iterations.parse().unwrap())
-  } else {
-    panic!("Usage: cargo run <input_file_path> <max_iterations>");
+  let (file_path, max_iterations) = match &args[..] {
+    [_, file_path, max_iterations] => (file_path, max_iterations.parse::<usize>().unwrap()),
+    [_, file_path] => (file_path, 100),
+    _ => panic!("Usage: cargo run <input_file_path> <?max_iterations = 100>"),
   };
 
   let problem = LandingProblem::from_parser(parser::parse_problem_data(file_path).unwrap());
+  let n = problem.planes.len();
 
   let solution = problem.initial_solution();
   display_solution(&problem, &solution);
+  let cost = problem.cost(&solution);
 
-  let solution = metaheuristics::hill_climb(&problem, max_iterations);
+  let initial_temp =
+    metaheuristics::initial_temperature(&problem, &solution, 2., 0.95, 10 * n, 10.);
+  println!("Initial temp: {}", initial_temp);
+  let solution = metaheuristics::simulated_annealing(
+    &problem,
+    &solution,
+    0.99,
+    max_iterations * n,
+    initial_temp,
+  );
   display_solution(&problem, &solution);
+
+  println!(
+    "Cost before: {}, Cost after: {}",
+    cost,
+    problem.cost(&solution)
+  );
 }
