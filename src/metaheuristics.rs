@@ -1,7 +1,5 @@
 use rand::Rng;
 
-use crate::Solution;
-
 pub trait Problem<S> {
   fn initial_solution(&self) -> S;
   fn random_neighbor(&self, solution: &S) -> S;
