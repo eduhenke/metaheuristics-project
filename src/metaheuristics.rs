@@ -92,17 +92,21 @@ pub fn initial_temperature<S: Clone, P: Problem<S>>(
 pub fn simulated_annealing<S: Clone, P: Problem<S>>(
   problem: &P,
   s: &S,
+  max_iterations: usize,
   alpha: f64,
-  sa_gas: usize,
+  sa_max: usize,
   mut temp: Temperature,
 ) -> S {
   let mut s = s.clone();
   let mut best_s = s.clone();
-  let mut iter_temp = 0;
+  let mut global_iter = 0;
 
   while temp > 0.1 {
-    while iter_temp < sa_gas {
-      iter_temp += 1;
+    for _ in 0..sa_max {
+      global_iter += 1;
+      if global_iter > max_iterations {
+        return best_s;
+      }
       let neighbor = problem.random_neighbor(&s);
       let delta = problem.cost(&neighbor) - problem.cost(&s);
       if delta < 0.0 {
@@ -118,8 +122,6 @@ pub fn simulated_annealing<S: Clone, P: Problem<S>>(
       }
     }
     temp *= alpha;
-    iter_temp = 0;
   }
-  s = best_s;
-  s
+  best_s
 }

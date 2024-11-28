@@ -4,7 +4,7 @@
 use core::fmt;
 use metaheuristics::{initial_temperature, Problem};
 use rand::{seq::SliceRandom, Rng};
-use std::{collections::HashSet, env::args, fmt::Debug};
+use std::{collections::HashSet, env::args, fmt::Debug, time};
 
 mod metaheuristics;
 mod parser;
@@ -235,38 +235,73 @@ fn display_solution(problem: &LandingProblem, solution: &Solution) {
     );
   }
 }
-
 fn main() {
   let args: Vec<String> = args().collect();
 
-  let (file_path, max_iterations) = match &args[..] {
-    [_, file_path, max_iterations] => (file_path, max_iterations.parse::<usize>().unwrap()),
-    [_, file_path] => (file_path, 100),
-    _ => panic!("Usage: cargo run <input_file_path> <?max_iterations = 100>"),
+  let (file_path, sa_max_k, alpha, initial_temp, unbounded) = match &args[..] {
+    [_, file_path, sa_max_k, alpha, initial_temp, unbounded] => (
+      file_path,
+      sa_max_k.parse::<f64>().unwrap(),
+      alpha.parse::<f64>().unwrap(),
+      initial_temp.parse::<f64>().unwrap(),
+      unbounded.parse::<bool>().unwrap(),
+    ),
+    x => panic!("yo {:?}", x),
   };
 
   let problem = LandingProblem::from_parser(parser::parse_problem_data(file_path).unwrap());
   let n = problem.planes.len();
-
   let solution = problem.initial_solution();
-  display_solution(&problem, &solution);
-  let cost = problem.cost(&solution);
 
-  let initial_temp =
-    metaheuristics::initial_temperature(&problem, &solution, 2., 0.95, 10 * n, 10.);
-  println!("Initial temp: {}", initial_temp);
+  let max_iterations = if unbounded { usize::MAX } else { n * n * 100 };
+
+  let before = time::Instant::now();
   let solution = metaheuristics::simulated_annealing(
     &problem,
     &solution,
-    0.99,
-    max_iterations * n,
+    max_iterations,
+    alpha,
+    (sa_max_k * n as f64) as usize,
     initial_temp,
   );
-  display_solution(&problem, &solution);
+  let after = time::Instant::now();
 
-  println!(
-    "Cost before: {}, Cost after: {}",
-    cost,
-    problem.cost(&solution)
-  );
+  display_solution(&problem, &solution);
+  println!("{}", problem.cost(&solution));
+  println!("{}", after.duration_since(before).as_secs_f32());
 }
+
+// fn main() {
+//   let args: Vec<String> = args().collect();
+
+//   let (file_path, max_iterations) = match &args[..] {
+//     [_, file_path, max_iterations] => (file_path, max_iterations.parse::<usize>().unwrap()),
+//     [_, file_path] => (file_path, 100),
+//     _ => panic!("Usage: cargo run <input_file_path> <?max_iterations = 100>"),
+//   };
+
+//   let problem = LandingProblem::from_parser(parser::parse_problem_data(file_path).unwrap());
+//   let n = problem.planes.len();
+
+//   let solution = problem.initial_solution();
+//   display_solution(&problem, &solution);
+//   let cost = problem.cost(&solution);
+
+//   let initial_temp =
+//     metaheuristics::initial_temperature(&problem, &solution, 2., 0.95, 10 * n, 10.);
+//   println!("Initial temp: {}", initial_temp);
+//   let solution = metaheuristics::simulated_annealing(
+//     &problem,
+//     &solution,
+//     0.99,
+//     max_iterations * n,
+//     initial_temp,
+//   );
+//   display_solution(&problem, &solution);
+
+//   println!(
+//     "Cost before: {}, Cost after: {}",
+//     cost,
+//     problem.cost(&solution)
+//   );
+// }
