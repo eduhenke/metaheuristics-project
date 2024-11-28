@@ -2,6 +2,7 @@ use crate::metaheuristics::{self, initial_temperature, Problem};
 use crate::parser;
 use core::fmt;
 use rand::{seq::SliceRandom, Rng};
+use std::ops::IndexMut;
 use std::{collections::HashSet, env::args, fmt::Debug, time};
 
 type ID = usize;
@@ -56,17 +57,6 @@ impl Arrival {
 
 /// Ordered list of arrivals
 pub type Solution = Vec<Arrival>;
-
-fn change_arrival(solution: &Solution, id: ID, landing_time: u32) -> Solution {
-  let mut solution = solution.clone();
-  solution
-    .iter_mut()
-    .find(|a| a.plane_id == id)
-    .unwrap()
-    .landing_time = landing_time;
-  solution.sort_by(|a, b| a.landing_time.cmp(&b.landing_time));
-  solution
-}
 
 /// Cost of a conflict of landing times between two planes per unit of time
 const CONFLICT_PENALTY: f64 = 1000.0;
@@ -148,22 +138,30 @@ impl metaheuristics::Problem<Solution> for LandingProblem {
 
   fn random_neighbor(&self, solution: &Solution) -> Solution {
     let mut rng = rand::thread_rng();
-    let id = rng.gen_range(0..self.planes.len());
+    let arrival_i = rng.gen_range(0..solution.len());
 
-    let plane = &self.planes[id];
+    let mut new_solution = solution.clone();
+    let arrival = new_solution.index_mut(arrival_i);
+    let plane = &self.planes[arrival.plane_id];
     let landing_time = rng.gen_range(plane.earliest_landing..=plane.latest_landing);
-    change_arrival(solution, id, landing_time)
+    arrival.landing_time = landing_time;
+    new_solution.sort_by(|a, b| a.landing_time.cmp(&b.landing_time));
+    new_solution
   }
 
   fn first_improvement_neighbor(&self, solution: &Solution) -> Solution {
     let mut rng = rand::thread_rng();
-    let mut ids = solution.iter().map(|a| a.plane_id).collect::<Vec<_>>();
-    ids.shuffle(&mut rng);
+    let mut arrival_is = (0..solution.len()).collect::<Vec<_>>();
+    arrival_is.shuffle(&mut rng);
 
-    for id in ids {
-      let plane = &self.planes[id];
+    for arrival_i in arrival_is {
+      let arrival = solution[arrival_i];
+      let plane = &self.planes[arrival.plane_id];
       for time in plane.earliest_landing..=plane.latest_landing {
-        let new_solution = change_arrival(solution, id, time);
+        let mut new_solution = solution.clone();
+        new_solution[arrival_i].landing_time = time;
+        new_solution.sort_by(|a, b| a.landing_time.cmp(&b.landing_time));
+
         if self.cost(&new_solution) < self.cost(solution) {
           return new_solution;
         }

@@ -1,4 +1,6 @@
-use airplane_landing_scheduler::metaheuristics::{simulated_annealing, Problem};
+use airplane_landing_scheduler::metaheuristics::{
+  initial_temperature, simulated_annealing, Problem,
+};
 use airplane_landing_scheduler::parser::parse_problem_data;
 use airplane_landing_scheduler::problem::*;
 use std::{collections::HashSet, env::args, time};
@@ -56,6 +58,7 @@ fn display_solution(problem: &LandingProblem, solution: &Solution) {
     );
   }
 }
+
 fn main() {
   let args: Vec<String> = args().collect();
 
@@ -101,22 +104,22 @@ fn main() {
 //     _ => panic!("Usage: cargo run <input_file_path> <?max_iterations = 100>"),
 //   };
 
-//   let problem = LandingProblem::from_parser(parser::parse_problem_data(file_path).unwrap());
+//   let problem = LandingProblem::from_parser(parse_problem_data(file_path).unwrap());
 //   let n = problem.planes.len();
 
 //   let solution = problem.initial_solution();
 //   display_solution(&problem, &solution);
 //   let cost = problem.cost(&solution);
 
-//   let initial_temp =
-//     metaheuristics::initial_temperature(&problem, &solution, 2., 0.95, 10 * n, 10.);
+//   let initial_temp = initial_temperature(&problem, &solution, 2., 0.95, 10 * n, 10.);
 //   println!("Initial temp: {}", initial_temp);
-//   let solution = metaheuristics::simulated_annealing(
+//   let solution = simulated_annealing(
 //     &problem,
 //     &solution,
+//     usize::MAX,
 //     0.99,
 //     max_iterations * n,
-//     initial_temp,
+//     10000.,
 //   );
 //   display_solution(&problem, &solution);
 

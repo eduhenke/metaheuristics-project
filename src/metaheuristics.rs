@@ -97,6 +97,7 @@ pub fn simulated_annealing<S: Clone, P: Problem<S>>(
 ) -> S {
   let mut s = s.clone();
   let mut best_s = s.clone();
+  let mut best_cost = problem.cost(&best_s);
   let mut global_iter = 0;
 
   while temp > 0.1 {
@@ -106,11 +107,13 @@ pub fn simulated_annealing<S: Clone, P: Problem<S>>(
         return best_s;
       }
       let neighbor = problem.random_neighbor(&s);
-      let delta = problem.cost(&neighbor) - problem.cost(&s);
+      let s_cost = problem.cost(&s);
+      let delta = problem.cost(&neighbor) - s_cost;
       if delta < 0.0 {
         s = neighbor;
-        if problem.cost(&s) < problem.cost(&best_s) {
+        if s_cost < best_cost {
           best_s = s.clone();
+          best_cost = s_cost;
         }
       } else {
         let x = rand::thread_rng().gen_range(0.0..=1.0);
@@ -121,5 +124,6 @@ pub fn simulated_annealing<S: Clone, P: Problem<S>>(
     }
     temp *= alpha;
   }
-  best_s
+  s = best_s;
+  s
 }
