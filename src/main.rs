@@ -116,7 +116,9 @@ fn main() {
             solution = result.0;
             duration += result.1;
 
-            solution = problem.first_improvement_neighbor(&solution);
+            for _ in 0..10 {
+              solution = problem.first_improvement_neighbor(&solution);
+            }
           }
           display_solution(&problem, &solution);
         }
@@ -150,7 +152,9 @@ fn main() {
               let result = run_sa(&problem, &solution, sa_max_k, alpha, initial_temp, false);
               solution = result.0;
               duration += result.1;
-              solution = problem.first_improvement_neighbor(&solution);
+              for _ in 0..10 {
+                solution = problem.first_improvement_neighbor(&solution);
+              }
             }
             (file, problem, solution)
           });
