@@ -1,7 +1,9 @@
 use crate::metaheuristics::{self, initial_temperature, Problem};
 use crate::parser;
 use core::fmt;
+use rand::prelude::Distribution;
 use rand::{seq::SliceRandom, Rng};
+use std::iter::zip;
 use std::ops::IndexMut;
 use std::{collections::HashSet, env::args, fmt::Debug, time};
 
@@ -59,11 +61,12 @@ impl Arrival {
 pub type Solution = Vec<Arrival>;
 
 /// Cost of a conflict of landing times between two planes per unit of time
-const CONFLICT_PENALTY: f64 = 1000.0;
+const CONFLICT_PENALTY: f64 = 5000.0;
 
 #[derive(Debug)]
 pub struct LandingProblem {
   pub planes: Vec<Plane>,
+  pub uniform: rand::distributions::Uniform<usize>,
 }
 
 impl LandingProblem {
@@ -84,6 +87,7 @@ impl LandingProblem {
           separation_times: p.separation_times,
         })
         .collect(),
+      uniform: rand::distributions::Uniform::new(0, data.num_planes),
     }
   }
 
@@ -138,14 +142,14 @@ impl metaheuristics::Problem<Solution> for LandingProblem {
 
   fn random_neighbor(&self, solution: &Solution) -> Solution {
     let mut rng = rand::thread_rng();
-    let arrival_i = rng.gen_range(0..solution.len());
+    let arrival_i = self.uniform.sample(&mut rng);
 
     let mut new_solution = solution.clone();
     let arrival = new_solution.index_mut(arrival_i);
     let plane = &self.planes[arrival.plane_id];
     let landing_time = rng.gen_range(plane.earliest_landing..=plane.latest_landing);
     arrival.landing_time = landing_time;
-    new_solution.sort_by(|a, b| a.landing_time.cmp(&b.landing_time));
+    new_solution.sort_by_key(|a| a.landing_time);
     new_solution
   }
 
@@ -157,10 +161,19 @@ impl metaheuristics::Problem<Solution> for LandingProblem {
     for arrival_i in arrival_is {
       let arrival = solution[arrival_i];
       let plane = &self.planes[arrival.plane_id];
-      for time in plane.earliest_landing..=plane.latest_landing {
+
+      //  [0  1  2 ...  30].reverse()
+      let towards_earliest = (plane.earliest_landing..=arrival.landing_time).rev();
+      // [31 32 33 ... 100]
+      let towards_latest = (arrival.landing_time..=plane.latest_landing);
+
+      // [30 31 29 32 28 33 ... 0 100]
+      let zigzag_times = zip(towards_earliest, towards_latest).flat_map(|(e, l)| [e, l]);
+
+      for time in zigzag_times {
         let mut new_solution = solution.clone();
         new_solution[arrival_i].landing_time = time;
-        new_solution.sort_by(|a, b| a.landing_time.cmp(&b.landing_time));
+        new_solution.sort_by_key(|a| a.landing_time);
 
         if self.cost(&new_solution) < self.cost(solution) {
           return new_solution;

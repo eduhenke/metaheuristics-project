@@ -36,7 +36,7 @@ CONFIG_PARAMS=$*
 # EDIT THIS: Path to your executable
 EXE=../target/release/airplane-landing-scheduler
 # EDIT THIS: Specify how parameters are given to your executable
-EXE_PARAMS="$INSTANCE ${CONFIG_PARAMS} false"
+EXE_PARAMS="irace ${CONFIG_PARAMS} $INSTANCE"
 
 if [ ! -x "$(command -v ${EXE})" ]; then
     error "${EXE}: not found or not executable (pwd: $(pwd))"
